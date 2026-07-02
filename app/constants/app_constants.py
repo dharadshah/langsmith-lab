@@ -3,6 +3,7 @@
 MODEL_NAME = "llama-3.3-70b-versatile"
 MODEL_TEMPERATURE = 0.0
 MAX_QUESTION_LENGTH = 500
+PROMPT_HUB_NAME = "langsmith-lab-qa-system"
 
 class TraceTags:
     ENV_DEV = "env:dev"

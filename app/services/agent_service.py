@@ -22,6 +22,7 @@ _ALLOWED_BINOPS = {
     ast.Div: operator.truediv,
     ast.Pow: operator.pow,
     ast.Mod: operator.mod,
+    ast.BitXor: operator.pow,   # treat ^ as exponentiation, calculator-style
 }
 
 
@@ -39,9 +40,12 @@ def _evaluate_node(node: ast.expr) -> float:
 
 @tool
 def calculator(expression: str) -> str:
-    """Evaluate a basic arithmetic expression, e.g. '12 * (3 + 4)'."""
-    parsed = ast.parse(expression, mode="eval")
-    return str(_evaluate_node(parsed.body))
+    """Evaluate a basic arithmetic expression, e.g. '12 * (3 + 4)' or '2 ** 10'."""
+    try:
+        parsed = ast.parse(expression, mode="eval")
+        return str(_evaluate_node(parsed.body))
+    except (ValueError, SyntaxError, TypeError, ZeroDivisionError):
+        return f"Error: could not evaluate the expression '{expression}'."
 
 
 class AgentService:
@@ -72,3 +76,15 @@ class AgentService:
     def handle_question(self, question: str) -> str:
         cleaned = preprocess_question(question)
         return self.ask(cleaned)
+    
+    def _load_prompt_from_hub(self) -> str:
+        from langsmith import Client
+        from app.constants.app_constants import PROMPT_HUB_NAME
+
+        client = Client()
+        prompt = client.pull_prompt(PROMPT_HUB_NAME)
+        # Extract the system message text from the pulled template
+        for message in prompt.messages:
+            if message.__class__.__name__.startswith("System"):
+                return message.prompt.template
+        return QA_AGENT_SYSTEM_PROMPT  # fallback

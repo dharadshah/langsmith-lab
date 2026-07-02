@@ -6,8 +6,14 @@ authors = [
     {name = "Dhara Shah",email = "dharadshah@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<4.0.0"
 dependencies = [
+    "fastapi (>=0.139.0,<0.140.0)",
+    "uvicorn (>=0.49.0,<0.50.0)",
+    "langchain-groq (>=1.1.3,<2.0.0)",
+    "langgraph (>=1.2.7,<2.0.0)",
+    "langsmith (>=0.9.5,<0.10.0)",
+    "pydantic-settings (>=2.14.2,<3.0.0)"
 ]
 
 [tool.poetry]
