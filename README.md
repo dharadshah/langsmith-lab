@@ -45,7 +45,24 @@ heuristic and LLM-as-judge evaluators.
     ├── schemas/         # Pydantic request/response models
     └── services/        # Agent and LangSmith integration logic
     tests/               # pytest suite
+    ├── conftest.py           # Fixtures; disables tracing; injects FakeAgentService
+    ├── test_preprocess.py    # Unit tests for question cleaning/validation
+    └── test_qa_endpoint.py   # API contract tests with mocked service
 
-## Status
+## Testing
 
-Work in progress — built step by step as a learning exercise.
+The test suite runs fully offline — no Groq or LangSmith calls — so it is free,
+fast, and deterministic.
+
+    poetry run pytest -v
+
+How the isolation works:
+
+- LangSmith tracing is disabled in `tests/conftest.py` by setting
+  `LANGSMITH_TRACING=false` before any app module is imported.
+- The real `AgentService` (which builds a live LLM client) is never constructed
+  in tests. FastAPI's dependency-injection override swaps in a `FakeAgentService`
+  that returns a canned answer, via `app.dependency_overrides`.
+
+This means the API contract — response shape, run_id generation, input
+validation — is verified without depending on external services.
