@@ -2,6 +2,11 @@
 import ast
 import operator
 
+from langsmith import traceable
+
+from app.constants.app_constants import TraceTags
+from app.services.preprocess_service import preprocess_question
+
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
@@ -58,3 +63,12 @@ class AgentService:
     def ask(self, question: str) -> str:
         result = self._agent.invoke({"messages": [("user", question)]})
         return result["messages"][-1].content
+    
+    @traceable(
+        run_type="chain",
+        name="qa_pipeline",
+        tags=[TraceTags.APP, TraceTags.ENV_DEV],
+    )
+    def handle_question(self, question: str) -> str:
+        cleaned = preprocess_question(question)
+        return self.ask(cleaned)
