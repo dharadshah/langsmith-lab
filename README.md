@@ -39,15 +39,20 @@ heuristic and LLM-as-judge evaluators.
 ## Project structure
 
     app/
-    ├── config.py        # Settings loaded from .env via pydantic-settings
-    ├── constants/       # Prompts, model names, tags — no literals in logic files
-    ├── routers/         # FastAPI routers
-    ├── schemas/         # Pydantic request/response models
-    └── services/        # Agent and LangSmith integration logic
-    tests/               # pytest suite
-    ├── conftest.py           # Fixtures; disables tracing; injects FakeAgentService
-    ├── test_preprocess.py    # Unit tests for question cleaning/validation
-    └── test_qa_endpoint.py   # API contract tests with mocked service
+    ├── config.py            # Settings from .env; export_langsmith_env() for tracing
+    ├── main.py              # FastAPI app (lifespan pattern) + /health
+    ├── constants/           # Prompts, model config, eval data, messages, tags
+    ├── routers/
+    │   └── qa.py            # /qa/ask and /qa/feedback endpoints
+    ├── schemas/
+    │   └── qa.py            # Request/response models
+    └── services/
+        ├── agent_service.py      # LangGraph ReAct agent + calculator tool
+        ├── preprocess_service.py # Traced question cleaning/validation
+        ├── feedback_service.py   # Writes user feedback to LangSmith
+        └── evaluators.py         # Heuristic and LLM-judge evaluators
+    scripts/                 # Runnable demos and setup (see Scripts section)
+    tests/                   # Offline pytest suite (see Testing section)
 
 ## Testing
 
@@ -66,3 +71,34 @@ How the isolation works:
 
 This means the API contract — response shape, run_id generation, input
 validation — is verified without depending on external services.
+
+## Scripts
+
+All scripts are run from the project root with `poetry run python scripts/<name>.py`
+and require a populated `.env`.
+
+- `check_tracing.py` — Verifies LangSmith connectivity and lists visible projects.
+  Useful for diagnosing tracing/auth issues.
+- `demo_agent.py` — Runs a single question through the traced pipeline. The quickest
+  way to produce a trace in the LangSmith UI.
+- `create_dataset.py` — Creates the evaluation dataset in LangSmith (idempotent;
+  skips if it already exists).
+- `run_evaluation.py` — Runs the agent against the dataset with heuristic and
+  LLM-as-judge evaluators, producing a scored experiment.
+- `push_prompt.py` — Pushes the agent system prompt to the LangSmith Prompt Hub.
+- `demo_hub_prompt.py` — Pulls the prompt back from the Hub to demonstrate runtime
+  decoupling.
+
+## Evaluation
+
+The project evaluates answer quality with two evaluators (`app/services/evaluators.py`):
+
+- `correctness` — a heuristic checking whether the expected numeric value appears in
+  the answer. Fast and deterministic, but brittle to phrasing (e.g. commas or written
+  numbers).
+- `relevance` — an LLM-as-judge scoring relevance and correctness against a reference
+  answer, returning a score plus reasoning.
+
+Run `create_dataset.py` once, then `run_evaluation.py` to produce a scored experiment
+viewable in LangSmith's Datasets & Testing section. Comparing experiments across prompt
+or model changes is the core regression-testing workflow.
