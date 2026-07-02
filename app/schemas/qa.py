@@ -11,3 +11,12 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     run_id: str
+
+class FeedbackRequest(BaseModel):
+    run_id: str
+    helpful: bool
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class FeedbackResponse(BaseModel):
+    message: str
